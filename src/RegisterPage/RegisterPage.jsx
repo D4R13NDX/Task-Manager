@@ -1,21 +1,20 @@
 import React from 'react';
 import { Form, Input, Button, Typography, message } from 'antd';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
 const { Title } = Typography;
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
     try {
-      const response = await axios.post('http://localhost:5000/login', values);
+      const response = await axios.post('http://localhost:5000/register', values);
       message.success(response.data.message);
-      localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      navigate('/login');
     } catch (error) {
-      message.error(error.response?.data?.error || 'Error en el login');
+      message.error(error.response?.data?.error || 'Error en el registro');
     }
   };
 
@@ -30,7 +29,7 @@ const LoginPage = () => {
       }}
     >
       <Form
-        name="login"
+        name="register"
         onFinish={onFinish}
         style={{
           width: 300,
@@ -39,7 +38,7 @@ const LoginPage = () => {
           backgroundColor: '#333',
         }}
       >
-        <Title level={3} style={{ textAlign: 'center', color: '#fff' }}>Login</Title>
+        <Title level={3} style={{ textAlign: 'center', color: '#fff' }}>Registro</Title>
 
         <Form.Item
           name="username"
@@ -49,8 +48,18 @@ const LoginPage = () => {
         </Form.Item>
 
         <Form.Item
+          name="email"
+          rules={[
+            { required: true, message: 'Escribe tu email' },
+            { type: 'email', message: 'El email no es válido' },
+          ]}
+        >
+          <Input placeholder="Email" style={{ marginBottom: 15 }} />
+        </Form.Item>
+
+        <Form.Item
           name="password"
-          rules={[{ required: true, message: 'Escribe la contraseña' }]}
+          rules={[{ required: true, message: 'Escribe tu contraseña' }]}
         >
           <Input.Password placeholder="Password" style={{ marginBottom: 20 }} />
         </Form.Item>
@@ -66,17 +75,17 @@ const LoginPage = () => {
               color: '#fff',
             }}
           >
-            Log in
+            Registrarse
           </Button>
         </Form.Item>
 
         <div style={{ textAlign: 'center' }}>
-          <span style={{ color: '#fff' }}>¿No tienes una cuenta? </span>
-          <Link to="/register" style={{ color: '#007BFF' }}>Regístrate aquí</Link>
+          <span style={{ color: '#fff' }}>¿Ya tienes una cuenta? </span>
+          <Link to="/login" style={{ color: '#007BFF' }}>Inicia sesión aquí</Link>
         </div>
       </Form>
     </div>
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
