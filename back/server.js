@@ -13,10 +13,9 @@ const db = admin.firestore();
 const app = express();
 app.use(express.json());
 app.use(cors());
-
 const SECRET_KEY = process.env.JWT_SECRET || '123asdf';
 
-// verificar el token y obtener el usuario
+// Middleware para verificar el token y obtener el usuario
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'No autorizado' });
@@ -72,73 +71,122 @@ app.post('/login', async (req, res) => {
   res.json({ message: 'Login exitoso', token });
 });
 
-// Obtener todas las tareas del usuario autenticado
-app.get('/tasks', authenticateToken, async (req, res) => {
+// Crear un grupo
+app.post('/groups', authenticateToken, async (req, res) => {
+  const { name } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'El nombre del grupo es obligatorio' });
+  }
   try {
-    const tasksSnapshot = await db.collection('TASKS')
-      .where('username', '==', req.user.username)
+    const newGroupRef = db.collection('GROUPS').doc();
+    await newGroupRef.set({
+      name,
+      createdBy: req.user.username,
+      members: [req.user.username],
+      createdAt: new Date(),
+    });
+    res.status(201).json({ message: 'Grupo creado exitosamente', groupId: newGroupRef.id });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear el grupo' });
+  }
+});
+// Agregar un usuario a un grupo
+app.post('/groups/:groupId/add-member', authenticateToken, async (req, res) => {
+  const { groupId } = req.params;
+  const { username } = req.body;
+  if (!username) {
+    return res.status(400).json({ error: 'El nombre de usuario es obligatorio' });
+  }
+  try {
+    const groupRef = db.collection('GROUPS').doc(groupId);
+    const groupDoc = await groupRef.get();
+    if (!groupDoc.exists) {
+      return res.status(404).json({ error: 'Grupo no encontrado' });
+    }
+    if (groupDoc.data().createdBy !== req.user.username) {
+      return res.status(403).json({ error: 'Solo el creador del grupo puede agregar miembros' });
+    }
+    const userDoc = await db.collection('USERS').doc(username).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    await groupRef.update({
+      members: admin.firestore.FieldValue.arrayUnion(username),
+    });
+    res.json({ message: 'Usuario agregado al grupo exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al agregar usuario al grupo' });
+  }
+});
+// Obtener grupos de un usuario
+app.get('/groups', authenticateToken, async (req, res) => {
+  try {
+    const groupsSnapshot = await db.collection('GROUPS')
+      .where('members', 'array-contains', req.user.username)
       .get();
 
-    const tasks = tasksSnapshot.docs.map(doc => ({
+    const groups = groupsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
     }));
 
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener los grupos' });
+  }
+});
+// Crear una tarea en un grupo
+app.post('/groups/:groupId/tasks', authenticateToken, async (req, res) => {
+  const { groupId } = req.params;
+  const { name, description, deadline, status, assignedTo } = req.body;
+
+  if (!name || !status || !assignedTo) {
+    return res.status(400).json({ error: 'Nombre, estado y usuario asignado son obligatorios' });
+  }
+  try {
+    const groupRef = db.collection('GROUPS').doc(groupId);
+    const groupDoc = await groupRef.get();
+    if (!groupDoc.exists) {
+      return res.status(404).json({ error: 'Grupo no encontrado' });
+    }
+    if (groupDoc.data().createdBy !== req.user.username) {
+      return res.status(403).json({ error: 'Solo el creador del grupo puede crear tareas' });
+    }
+    if (!groupDoc.data().members.includes(assignedTo)) {
+      return res.status(400).json({ error: 'El usuario asignado no es miembro del grupo' });
+    }
+    const newTaskRef = db.collection('TASKS').doc();
+    await newTaskRef.set({
+      groupId,
+      name,
+      description: description || '',
+      deadline: deadline || null,
+      status,
+      assignedTo,
+      createdBy: req.user.username,
+      createdAt: new Date(),
+    });
+    res.status(201).json({ message: 'Tarea creada exitosamente', taskId: newTaskRef.id });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear la tarea' });
+  }
+});
+// Obtener tareas de un grupo
+app.get('/groups/:groupId/tasks', authenticateToken, async (req, res) => {
+  const { groupId } = req.params;
+  try {
+    const tasksSnapshot = await db.collection('TASKS')
+      .where('groupId', '==', groupId)
+      .get();
+    const tasks = tasksSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener las tareas' });
   }
 });
-
-// Crear una nueva tarea
-app.post('/tasks', authenticateToken, async (req, res) => {
-  const { name, description, deadline, status, category } = req.body;
-  
-  if (!name || !status) {
-    return res.status(400).json({ error: 'El nombre y el estado son obligatorios' });
-  }
-
-  const validStatuses = ['In Progress', 'Done', 'Paused', 'Revision'];
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ error: 'Estado inválido' });
-  }
-
-  try {
-    const newTaskRef = db.collection('TASKS').doc();
-    await newTaskRef.set({
-      username: req.user.username,
-      name,
-      description: description || '',
-      deadline: deadline || null,
-      status,
-      category: category || '',
-      createdAt: new Date(),
-    });
-
-    res.status(201).json({ message: 'Tarea creada exitosamente' });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al crear la tarea' });
-  }
-});
-
-// Obtener una tarea por ID
-app.get('/tasks/:id', authenticateToken, async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const taskRef = db.collection('TASKS').doc(id);
-    const taskDoc = await taskRef.get();
-
-    if (!taskDoc.exists || taskDoc.data().username !== req.user.username) {
-      return res.status(403).json({ error: 'No tienes permiso para ver esta tarea' });
-    }
-
-    res.json({ id: taskDoc.id, ...taskDoc.data() });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener la tarea' });
-  }
-});
-
 // Actualizar una tarea
 app.put('/tasks/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
@@ -148,43 +196,83 @@ app.put('/tasks/:id', authenticateToken, async (req, res) => {
     const taskRef = db.collection('TASKS').doc(id);
     const taskDoc = await taskRef.get();
 
-    if (!taskDoc.exists || taskDoc.data().username !== req.user.username) {
+    if (!taskDoc.exists) {
+      return res.status(404).json({ error: 'Tarea no encontrada' });
+    }
+    // Verificar si el usuario es el creador del grupo
+    const groupRef = db.collection('GROUPS').doc(taskDoc.data().groupId);
+    const groupDoc = await groupRef.get();
+    if (!groupDoc.exists) {
+      return res.status(404).json({ error: 'Grupo no encontrado' });
+    }
+    if (groupDoc.data().createdBy !== req.user.username) {
       return res.status(403).json({ error: 'No tienes permiso para modificar esta tarea' });
     }
-
-    await taskRef.update({
+    const updatedData = {
       name: name || taskDoc.data().name,
       description: description || taskDoc.data().description,
       deadline: deadline || taskDoc.data().deadline,
       status: status || taskDoc.data().status,
-      category: category || taskDoc.data().category,
-    });
-
+      category: category || taskDoc.data().category || '', // Valor por defecto para category
+    };
+    await taskRef.update(updatedData);
     res.json({ message: 'Tarea actualizada exitosamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar la tarea' });
+    console.error('Error al actualizar la tarea:', error); // Log del error para depuración, ya que tuve errores con un campo
+    res.status(500).json({ error: 'Error al actualizar la tarea', details: error.message });
   }
 });
-
-// Eliminar una tarea
-app.delete('/tasks/:id', authenticateToken, async (req, res) => {
+// Actualizar el estado de una tarea
+app.put('/tasks/:id/status', authenticateToken, async (req, res) => {
   const { id } = req.params;
-
+  const { status } = req.body;
+  if (!status) {
+    return res.status(400).json({ error: 'El estado es obligatorio' });
+  }
   try {
     const taskRef = db.collection('TASKS').doc(id);
     const taskDoc = await taskRef.get();
-
-    if (!taskDoc.exists || taskDoc.data().username !== req.user.username) {
+    if (!taskDoc.exists) {
+      return res.status(404).json({ error: 'Tarea no encontrada' });
+    }
+    // Verificar si el usuario es el creador del grupo o el asignado a la tarea
+    const groupRef = db.collection('GROUPS').doc(taskDoc.data().groupId);
+    const groupDoc = await groupRef.get();
+    if (!groupDoc.exists) {
+      return res.status(404).json({ error: 'Grupo no encontrado' });
+    }
+    if (groupDoc.data().createdBy !== req.user.username && taskDoc.data().assignedTo !== req.user.username) {
+      return res.status(403).json({ error: 'No tienes permiso para modificar esta tarea' });
+    }
+    await taskRef.update({ status });
+    res.json({ message: 'Estado de la tarea actualizado exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar el estado de la tarea' });
+  }
+});
+// Eliminar una tarea
+app.delete('/tasks/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const taskRef = db.collection('TASKS').doc(id);
+    const taskDoc = await taskRef.get();
+    if (!taskDoc.exists) {
+      return res.status(404).json({ error: 'Tarea no encontrada' });
+    }
+    // Verificar si el usuario es el creador del grupo
+    const groupRef = db.collection('GROUPS').doc(taskDoc.data().groupId);
+    const groupDoc = await groupRef.get();
+    if (!groupDoc.exists) {
+      return res.status(404).json({ error: 'Grupo no encontrado' });
+    }
+    if (groupDoc.data().createdBy !== req.user.username) {
       return res.status(403).json({ error: 'No tienes permiso para eliminar esta tarea' });
     }
-
     await taskRef.delete();
     res.json({ message: 'Tarea eliminada exitosamente' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar la tarea' });
   }
 });
-
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
