@@ -61,12 +61,16 @@ const DashboardPage = () => {
 
   const fetchTasks = async (groupId) => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/tasks`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/groups/${groupId}/tasks`, 
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setTasks(response.data);
     } catch (error) {
       message.error('Error al cargar tareas');
+      console.error("Error details:", error.response?.data);
     }
   };
 
@@ -75,17 +79,22 @@ const DashboardPage = () => {
       message.error('Debes seleccionar un grupo para crear una tarea');
       return;
     }
-
+  
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/tasks`, values, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/groups/${selectedGroup}/tasks`, 
+        values,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       message.success('Tarea creada');
       fetchTasks(selectedGroup);
       setIsModalOpen(false);
       form.resetFields();
     } catch (error) {
       message.error('Error al crear tarea');
+      console.error("Error details:", error.response?.data);
     }
   };
 
