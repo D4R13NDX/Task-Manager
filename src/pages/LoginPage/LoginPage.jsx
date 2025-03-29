@@ -1,6 +1,7 @@
 import React from 'react';
 import { Form, Input, Button, Typography, message } from 'antd';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const { Title } = Typography;
@@ -12,8 +13,14 @@ const LoginPage = () => {
     try {
       const response = await axios.post('http://localhost:5000/login', values);
       message.success(response.data.message);
-      localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      localStorage.setItem('token', response.data.token); // Guardar el token en localStorage
+
+      // Redirigir según el rol del usuario
+      if (response.data.rol === 'admin') {
+        navigate('/admin/users'); // Redirigir a AdminUsersPage si es admin
+      } else {
+        navigate('/dashboard'); // Redirigir al Dashboard si es usuario normal
+      }
     } catch (error) {
       message.error(error.response?.data?.error || 'Error en el login');
     }

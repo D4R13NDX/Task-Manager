@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Layout, Menu, Button, Modal, Form, Input, Select, List, Card, message, DatePicker } from 'antd';
-import { PlusOutlined, TeamOutlined, QuestionCircleOutlined, AppstoreAddOutlined, UserAddOutlined } from '@ant-design/icons';
+import { PlusOutlined, TeamOutlined, QuestionCircleOutlined, AppstoreAddOutlined, UserAddOutlined, LogoutOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { useNavigate } from 'react-router-dom';
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -22,10 +23,20 @@ const DashboardPage = () => {
   const [addMemberForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const token = localStorage.getItem('token');
+  const navigate = useNavigate();
+
+  // Verificar si el usuario está autenticado al cargar la página
+  useEffect(() => {
+    if (!token) {
+      navigate('/login'); // Redirigir al login si no hay token
+    }
+  }, [navigate, token]);
 
   useEffect(() => {
-    fetchGroups();
-  }, []);
+    if (token) {
+      fetchGroups();
+    }
+  }, [token]);
 
   useEffect(() => {
     if (selectedGroup) {
@@ -63,7 +74,7 @@ const DashboardPage = () => {
       message.error('Debes seleccionar un grupo para crear una tarea');
       return;
     }
-  
+
     try {
       await axios.post(`http://localhost:5000/groups/${selectedGroup}/tasks`, values, {
         headers: { Authorization: `Bearer ${token}` },
@@ -121,10 +132,10 @@ const DashboardPage = () => {
         description: values.description || '',
         deadline: values.deadline || null,
         status: values.status || 'In Progress',
-        category: values.category || '', // Valor por defecto para category
+        category: values.category || '',
       };
-  
-      const response = await axios.put(
+
+      await axios.put(
         `http://localhost:5000/tasks/${editingTask.id}`,
         updatedTask,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -152,11 +163,11 @@ const DashboardPage = () => {
 
   const onDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
-  
-    if (!destination) return; // Si no hay destino válido, no hacer nada
-  
-    if (destination.droppableId === source.droppableId) return; // Si no cambia de columna, no hacer nada
-  
+
+    if (!destination) return;
+
+    if (destination.droppableId === source.droppableId) return;
+
     try {
       await axios.put(
         `http://localhost:5000/tasks/${draggableId}/status`,
@@ -164,10 +175,16 @@ const DashboardPage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       message.success('Estado de la tarea actualizado');
-      fetchTasks(selectedGroup); // Actualizar la lista de tareas
+      fetchTasks(selectedGroup);
     } catch (error) {
       message.error('Error al actualizar el estado de la tarea');
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token'); // Borrar el token al cerrar sesión
+    message.success('Sesión cerrada exitosamente');
+    navigate('/login'); // Redirigir al login
   };
 
   const KanbanBoard = ({ tasks, onEditTask, onDeleteTask }) => {
@@ -239,6 +256,9 @@ const DashboardPage = () => {
           <Menu.Item key="1" icon={<TeamOutlined />}>Nosotros</Menu.Item>
           <Menu.Item key="2" icon={<QuestionCircleOutlined />}>Soporte</Menu.Item>
           <Menu.Item key="3" icon={<AppstoreAddOutlined />}>Productos</Menu.Item>
+          <Menu.Item key="4" icon={<LogoutOutlined />} onClick={handleLogout}>
+            Cerrar sesión
+          </Menu.Item>
         </Menu>
       </Sider>
       <Layout style={{ padding: '0 24px 24px' }}>
@@ -336,31 +356,31 @@ const DashboardPage = () => {
 
       {/* Modal para editar tarea */}
       <Modal title="Editar Tarea" open={isEditModalOpen} onCancel={() => setIsEditModalOpen(false)} footer={null}>
-      <Form form={editForm} layout="vertical" onFinish={handleEditTask}>
-  <Form.Item name="name" label="Nombre de la tarea" rules={[{ required: true, message: 'Campo obligatorio' }]}>
-    <Input />
-  </Form.Item>
-  <Form.Item name="description" label="Descripción">
-    <Input.TextArea rows={3} />
-  </Form.Item>
-  <Form.Item name="deadline" label="Fecha límite">
-    <DatePicker showTime format="YYYY-MM-DD HH:mm:ss" />
-  </Form.Item>
-  <Form.Item name="status" label="Estado" rules={[{ required: true, message: 'Campo obligatorio' }]}>
-    <Select>
-      <Option value="In Progress">En progreso</Option>
-      <Option value="Done">Hecho</Option>
-      <Option value="Paused">Pausado</Option>
-      <Option value="Revision">Revisión</Option>
-    </Select>
-  </Form.Item>
-  <Form.Item name="category" label="Categoría">
-    <Input placeholder="Sin categoría" />
-  </Form.Item>
-  <Form.Item>
-    <Button type="primary" htmlType="submit">Actualizar</Button>
-  </Form.Item>
-</Form>
+        <Form form={editForm} layout="vertical" onFinish={handleEditTask}>
+          <Form.Item name="name" label="Nombre de la tarea" rules={[{ required: true, message: 'Campo obligatorio' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="description" label="Descripción">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+          <Form.Item name="deadline" label="Fecha límite">
+            <DatePicker showTime format="YYYY-MM-DD HH:mm:ss" />
+          </Form.Item>
+          <Form.Item name="status" label="Estado" rules={[{ required: true, message: 'Campo obligatorio' }]}>
+            <Select>
+              <Option value="In Progress">En progreso</Option>
+              <Option value="Done">Hecho</Option>
+              <Option value="Paused">Pausado</Option>
+              <Option value="Revision">Revisión</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="category" label="Categoría">
+            <Input placeholder="Sin categoría" />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit">Actualizar</Button>
+          </Form.Item>
+        </Form>
       </Modal>
     </Layout>
   );
