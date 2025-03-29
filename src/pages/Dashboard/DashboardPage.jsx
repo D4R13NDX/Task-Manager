@@ -5,6 +5,7 @@ import axios from 'axios';
 import moment from 'moment';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../../config';
 
 const { Sider, Content } = Layout;
 const { Option } = Select;
@@ -46,7 +47,7 @@ const DashboardPage = () => {
 
   const fetchGroups = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/groups', {
+      const response = await axios.get('${API_URL}/groups', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGroups(response.data);
@@ -60,7 +61,7 @@ const DashboardPage = () => {
 
   const fetchTasks = async (groupId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/groups/${groupId}/tasks`, {
+      const response = await axios.get(`${API_URL}/groups/${groupId}/tasks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTasks(response.data);
@@ -76,7 +77,7 @@ const DashboardPage = () => {
     }
 
     try {
-      await axios.post(`http://localhost:5000/groups/${selectedGroup}/tasks`, values, {
+      await axios.post(`${API_URL}/groups/${selectedGroup}/tasks`, values, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Tarea creada');
@@ -90,7 +91,7 @@ const DashboardPage = () => {
 
   const handleCreateGroup = async (values) => {
     try {
-      await axios.post('http://localhost:5000/groups', values, {
+      await axios.post('${API_URL}/groups', values, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Grupo creado');
@@ -104,7 +105,7 @@ const DashboardPage = () => {
 
   const handleAddMember = async (values) => {
     try {
-      await axios.post(`http://localhost:5000/groups/${selectedGroup}/add-member`, values, {
+      await axios.post(`${API_URL}/groups/${selectedGroup}/add-member`, values, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Usuario agregado al grupo');
@@ -136,7 +137,7 @@ const DashboardPage = () => {
       };
 
       await axios.put(
-        `http://localhost:5000/tasks/${editingTask.id}`,
+        `http://${API_URL}/tasks/${editingTask.id}`,
         updatedTask,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -151,7 +152,7 @@ const DashboardPage = () => {
 
   const deleteTask = async (taskId) => {
     try {
-      await axios.delete(`http://localhost:5000/tasks/${taskId}`, {
+      await axios.delete(`${API_URL}/tasks/${taskId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Tarea eliminada');
@@ -170,7 +171,7 @@ const DashboardPage = () => {
 
     try {
       await axios.put(
-        `http://localhost:5000/tasks/${draggableId}/status`,
+        `${API_URL}/tasks/${draggableId}/status`,
         { status: destination.droppableId },
         { headers: { Authorization: `Bearer ${token}` } }
       );

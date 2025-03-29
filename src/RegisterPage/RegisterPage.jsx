@@ -2,6 +2,7 @@ import React from 'react';
 import { Form, Input, Button, Typography, message } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../../config';
 
 const { Title } = Typography;
 
@@ -10,7 +11,7 @@ const RegisterPage = () => {
 
   const onFinish = async (values) => {
     try {
-      const response = await axios.post('http://localhost:5000/register', values);
+      const response = await axios.post('${API_URL}/register', values);
       message.success(response.data.message);
       navigate('/login');
     } catch (error) {

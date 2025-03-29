@@ -3,6 +3,7 @@ import { Form, Input, Button, Typography, message } from 'antd';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../../config';
 
 const { Title } = Typography;
 
@@ -11,7 +12,7 @@ const LoginPage = () => {
 
   const onFinish = async (values) => {
     try {
-      const response = await axios.post('http://localhost:5000/login', values);
+      const response = await axios.post(`${API_URL}/login`, values);
       message.success(response.data.message);
       localStorage.setItem('token', response.data.token); // Guardar el token en localStorage
 
