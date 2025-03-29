@@ -47,7 +47,7 @@ const DashboardPage = () => {
 
   const fetchGroups = async () => {
     try {
-      const response = await axios.get('${API_URL}/groups', {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/groups`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGroups(response.data);
@@ -61,7 +61,7 @@ const DashboardPage = () => {
 
   const fetchTasks = async (groupId) => {
     try {
-      const response = await axios.get(`${API_URL}/groups/${groupId}/tasks`, {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/tasks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTasks(response.data);
@@ -77,7 +77,7 @@ const DashboardPage = () => {
     }
 
     try {
-      await axios.post(`${API_URL}/groups/${selectedGroup}/tasks`, values, {
+      await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/tasks`, values, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Tarea creada');
@@ -91,7 +91,7 @@ const DashboardPage = () => {
 
   const handleCreateGroup = async (values) => {
     try {
-      await axios.post('${API_URL}/groups', values, {
+      await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/groups`, values, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Grupo creado');
@@ -105,7 +105,7 @@ const DashboardPage = () => {
 
   const handleAddMember = async (values) => {
     try {
-      await axios.post(`${API_URL}/groups/${selectedGroup}/add-member`, values, {
+      await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/groups/${selectedGroup}/add-member`, values, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Usuario agregado al grupo');
@@ -137,7 +137,7 @@ const DashboardPage = () => {
       };
 
       await axios.put(
-        `http://${API_URL}/tasks/${editingTask.id}`,
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/tasks/${editingTask.id}`,
         updatedTask,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -152,7 +152,7 @@ const DashboardPage = () => {
 
   const deleteTask = async (taskId) => {
     try {
-      await axios.delete(`${API_URL}/tasks/${taskId}`, {
+      await axios.delete(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/tasks/${taskId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Tarea eliminada');
@@ -171,7 +171,7 @@ const DashboardPage = () => {
 
     try {
       await axios.put(
-        `${API_URL}/tasks/${draggableId}/status`,
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/tasks/${draggableId}/status`,
         { status: destination.droppableId },
         { headers: { Authorization: `Bearer ${token}` } }
       );

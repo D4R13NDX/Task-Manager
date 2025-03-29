@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message } from 'antd';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../../config';
 const { Option } = Select;
 
 const AdminUsersPage = () => {
@@ -18,7 +17,7 @@ const AdminUsersPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${API_URL}/users`, {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(response.data);
@@ -38,7 +37,7 @@ const AdminUsersPage = () => {
 
   const handleUpdateUser = async (values) => {
     try {
-      await axios.put(`${API_URL}/users/${editingUser.username}`, values, {
+      await axios.put(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/users/${editingUser.username}`, values, {
         headers: { Authorization: `Bearer ${token}` },
       });
       message.success('Usuario actualizado');
