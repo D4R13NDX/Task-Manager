@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, message } from 'antd';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
 
@@ -10,7 +11,7 @@ const AdminUsersPage = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [form] = Form.useForm();
   const token = localStorage.getItem('token');
-
+  const navigate = useNavigate();
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -48,6 +49,14 @@ const AdminUsersPage = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    message.success('Sesión cerrada correctamente');
+    navigate('/login');
+  };
+  
+
   const columns = [
     {
       title: 'Username',
@@ -77,6 +86,11 @@ const AdminUsersPage = () => {
 
   return (
     <div>
+      <div style={{ marginBottom: 16, textAlign: 'right' }}>
+      <Button type="primary" danger onClick={handleLogout}>
+        Cerrar Sesión
+      </Button>
+    </div>
       <Table dataSource={users} columns={columns} rowKey="username" />
       <Modal
         title="Editar Usuario"

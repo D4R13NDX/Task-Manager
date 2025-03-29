@@ -29,7 +29,7 @@ const db = admin.firestore();
 const app = express();
 const allowedOrigins = [
   'http://localhost:3000', // Desarrollo local
-  process.env.FRONTEND_URL // Tu dominio en Vercel
+  process.env.FRONTEND_URL // Dominio en Vercel
 ];
 app.use(cors({
   origin: function(origin, callback) {
