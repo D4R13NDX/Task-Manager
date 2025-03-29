@@ -27,4 +27,4 @@ yarn-error.log*
 .vscode/
 
 # Archivos del sistema
-Thumbs.db
+Thumbs.db"back/credencialesfirebase.json" 
